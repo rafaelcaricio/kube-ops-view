@@ -1,3 +1,32 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    application: kube-ops-view
+    version: v0.0.1
+  name: kube-ops-view
+data:
+  kubeconfig.conf: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - cluster:
+        certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        server: https://192.168.2.50:6443
+      name: default
+    contexts:
+    - context:
+        cluster: default
+        namespace: default
+        user: default
+      name: default
+    current-context: default
+    users:
+    - name: default
+      user:
+        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -19,8 +48,10 @@ spec:
       serviceAccount: kube-ops-view
       containers:
       - name: service
-        image: hjacobs/kube-ops-view:latest
+        image: rafaelcaricio/rpi-kube-ops-view:0.7.1-11
+        imagePullPolicy: Always
         args:
+        - --kubeconfig-path=/kubernetes/kubeconfig.conf
         - --redis-url=redis://kube-ops-view-redis:6379
         ports:
         - containerPort: 8080
@@ -38,3 +69,11 @@ spec:
           requests:
             cpu: 50m
             memory: 50Mi
+        volumeMounts:
+        - mountPath: /kubernetes
+          name: kubernetes-config
+          readOnly: true
+      volumes:
+      - name: kubernetes-config
+        configMap:
+          name: kube-ops-view

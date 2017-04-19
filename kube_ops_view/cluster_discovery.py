@@ -1,3 +1,4 @@
+import base64
 import logging
 import re
 import time
@@ -34,7 +35,10 @@ class StaticAuthorizationHeaderAuth(AuthBase):
         self.authorization = authorization
 
     def __call__(self, request):
-        request.headers['Authorization'] = self.authorization
+        logger.debug("Using StaticAuthorizationHeaderAuth ...")
+        k, v = self.authorization.split(' ')
+        v = base64.decodebytes(v.encode())
+        request.headers['Authorization'] = "{} {}".format(k, v.decode())
         return request
 
 
